@@ -16,9 +16,11 @@
 		private var _bulletDelayCount:int = 0;
 
 		private var _enemyDelay:int = 1000;
+		private var _bossEnemyDelay:int = 3000;
 
 		private var _player:Player;
 		private var _enemyTimer:Timer;
+		private var _bossEnemyTimer: Timer;
 
 		private var _gameOver:Boolean;
 
@@ -31,6 +33,10 @@
 			var _enemyHolder: Sprite = new Sprite();
 			_enemyHolder.name = "_enemyHolder";
 			this.addChild(_enemyHolder);
+			
+			var _bossEnemyHolder: Sprite = new Sprite();
+			_bossEnemyHolder.name = "_bossEnemyHolder";
+			this.addChild(_bossEnemyHolder);
 
 			//this._enemyHolder = [];
 			this._bulletDelayCount = 0;
@@ -50,9 +56,13 @@
 
 		private function enemyCreation():void
 		{
-			this._enemyTimer = new Timer(this._enemyDelay);
-			this._enemyTimer.addEventListener(TimerEvent.TIMER, this.enemyTimerListener);
-			this._enemyTimer.start();
+			//this._enemyTimer = new Timer(this._enemyDelay);
+			//this._enemyTimer.addEventListener(TimerEvent.TIMER, this.enemyTimerListener);
+			//this._enemyTimer.start();
+			
+			this._bossEnemyTimer = new Timer(this._bossEnemyDelay);
+			this._bossEnemyTimer.addEventListener(TimerEvent.TIMER, this.bossEnemyTimerListener);
+			this._bossEnemyTimer.start();
 		}
 
 		private function enemyTimerListener(e:TimerEvent):void
@@ -65,13 +75,36 @@
 				_enemyHolder.addChild(_enemy);
 				//this._enemyHolder.push(_enemy);
 				var _this:Object = this;
-				function _callback(_enemy_mc)
+				function _callback(_enemy_mc, _bullet)
 				{
 					_this.dispatchEvent(new Event('INCREMENT_SCORE'));
 					_enemy_mc.destroy();
 					_enemyHolder.removeChild(_enemy_mc);
 					_enemy_mc = null;
+					
+					if(_bullet) {
+						_bullet.destroy();
+						_bulletHolder.removeChild(_bullet);
+						_bullet = null;
+					}
 				}
+			}
+		}
+		
+		private function bossEnemyTimerListener(e:TimerEvent): void {
+			if(this._gameOver) {
+				return;
+			}
+			
+			var _bulletHolder:Sprite = this.getChildByName("_bulletHolder") as Sprite;
+			var _bossEnemyHolder: Sprite = this.getChildByName("_bossEnemyHolder") as Sprite;
+			var _bossEnemy: BossEnemy = new BossEnemy(this._stage, _bulletHolder, _callback);
+			_bossEnemyHolder.addChild(_bossEnemy);
+			
+			function _callback(_bossEnemy) {
+				_bossEnemy.destroy();
+				//_bossEnemyHolder.removeChild(_bossEnemy);
+				//_bossEnemy = null;
 			}
 		}
 

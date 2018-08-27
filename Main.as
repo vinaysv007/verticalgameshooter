@@ -25,9 +25,10 @@
 		{
 			this._gamePlay = new GamePlay(stage.stageWidth,stage.stageHeight,stage);
 			this.addChild(this._gamePlay);
-			
+
 			this._gamePlay.addEventListener('GAME_OVER', this.onGameOver);
 			this._gamePlay.addEventListener('INCREMENT_SCORE', this.updateScore);
+			this._gamePlay.addEventListener('DECREMENT_LIFE', this.updateLife);
 
 			this._score = new Score();
 			this.addChild(this._score);
@@ -38,12 +39,18 @@
 			this._score.updateScore();
 		}
 
+		private function updateLife(e:Event):void
+		{
+			this._score.updateLife();
+		}
+
 		private function onGameOver(e:Event):void
 		{
 			var _latestScore:int = this._score.getUpdatedScore();
 			this._score.destroy();
 			this._gamePlay.removeEventListener('GAME_OVER', this.onGameOver);
 			this._gamePlay.removeEventListener('INCREMENT_SCORE', this.updateScore);
+			this._gamePlay.removeEventListener('DECREMENT_LIFE', this.updateLife);
 			this.removeChild(this._gamePlay);
 			this.removeChild(this._score);
 			this._gamePlay = null;

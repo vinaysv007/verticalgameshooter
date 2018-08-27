@@ -15,28 +15,30 @@
 		private var _bulletDelay:int = 20;
 		private var _bulletDelayCount:int = 0;
 
-		private var _enemyDelay:int = 1000;
-		private var _bossEnemyDelay:int = 3000;
+		private var _enemyDelay:int = 2000;
+		private var _bossEnemyDelay:int = 8000;
 
 		private var _player:Player;
 		private var _enemyTimer:Timer;
-		private var _bossEnemyTimer: Timer;
+		private var _bossEnemyTimer:Timer;
 
 		private var _gameOver:Boolean;
 
+		private var _playerLifeCount:int = 0;
+
 		public function GamePlay(_boundWidth: Number, _boundHeight: Number, _stage:Stage)
 		{
-			var _bulletHolder: Sprite = new Sprite();
-			_bulletHolder.name = "_bulletHolder";
-			this.addChild(_bulletHolder);
-
 			var _enemyHolder: Sprite = new Sprite();
 			_enemyHolder.name = "_enemyHolder";
 			this.addChild(_enemyHolder);
-			
-			var _bossEnemyHolder: Sprite = new Sprite();
-			_bossEnemyHolder.name = "_bossEnemyHolder";
-			this.addChild(_bossEnemyHolder);
+
+			var _enemyBulletHolder: Sprite = new Sprite();
+			_enemyBulletHolder.name = "_enemyBulletHolder";
+			this.addChild(_enemyBulletHolder);
+
+			var _bulletHolder: Sprite = new Sprite();
+			_bulletHolder.name = "_bulletHolder";
+			this.addChild(_bulletHolder);
 
 			//this._enemyHolder = [];
 			this._bulletDelayCount = 0;
@@ -56,10 +58,10 @@
 
 		private function enemyCreation():void
 		{
-			//this._enemyTimer = new Timer(this._enemyDelay);
-			//this._enemyTimer.addEventListener(TimerEvent.TIMER, this.enemyTimerListener);
-			//this._enemyTimer.start();
-			
+			this._enemyTimer = new Timer(this._enemyDelay);
+			this._enemyTimer.addEventListener(TimerEvent.TIMER, this.enemyTimerListener);
+			this._enemyTimer.start();
+
 			this._bossEnemyTimer = new Timer(this._bossEnemyDelay);
 			this._bossEnemyTimer.addEventListener(TimerEvent.TIMER, this.bossEnemyTimerListener);
 			this._bossEnemyTimer.start();
@@ -71,18 +73,23 @@
 			{
 				var _bulletHolder:Sprite = this.getChildByName("_bulletHolder") as Sprite;
 				var _enemyHolder:Sprite = this.getChildByName("_enemyHolder") as Sprite;
+				var _enemyBulletHolder:Sprite = this.getChildByName("_enemyBulletHolder") as Sprite;
 				var _enemy:Enemy = new Enemy(this._stage,_bulletHolder,_callback);
 				_enemyHolder.addChild(_enemy);
-				//this._enemyHolder.push(_enemy);
+				_enemy.startTrigger();
 				var _this:Object = this;
-				function _callback(_enemy_mc, _bullet)
+				function _callback(_enemy_mc, _bullet=null, _incScore: Boolean = false)
 				{
-					_this.dispatchEvent(new Event('INCREMENT_SCORE'));
+					if (_incScore)
+					{
+						_this.dispatchEvent(new Event('INCREMENT_SCORE'));
+					}
 					_enemy_mc.destroy();
 					_enemyHolder.removeChild(_enemy_mc);
 					_enemy_mc = null;
-					
-					if(_bullet) {
+
+					if (_bullet)
+					{
 						_bullet.destroy();
 						_bulletHolder.removeChild(_bullet);
 						_bullet = null;
@@ -90,21 +97,45 @@
 				}
 			}
 		}
-		
-		private function bossEnemyTimerListener(e:TimerEvent): void {
-			if(this._gameOver) {
+
+		private function bossEnemyTimerListener(e:TimerEvent):void
+		{
+			if (this._gameOver)
+			{
 				return;
 			}
-			
+
 			var _bulletHolder:Sprite = this.getChildByName("_bulletHolder") as Sprite;
-			var _bossEnemyHolder: Sprite = this.getChildByName("_bossEnemyHolder") as Sprite;
-			var _bossEnemy: BossEnemy = new BossEnemy(this._stage, _bulletHolder, _callback);
-			_bossEnemyHolder.addChild(_bossEnemy);
-			
-			function _callback(_bossEnemy) {
+			var _enemyHolder:Sprite = this.getChildByName("_enemyHolder") as Sprite;
+			var _bossEnemy:BossEnemy = new BossEnemy(this._stage,_bulletHolder,_callback,_removeBullet);
+			_enemyHolder.addChild(_bossEnemy);
+			_bossEnemy.startTrigger();
+			function _removeBullet(_bullet)
+			{
+				if (_bullet)
+				{
+					_bullet.destroy();
+					_bulletHolder.removeChild(_bullet);
+					_bullet = null;
+				}
+			}
+			var _this:Object = this;
+			function _callback(_bossEnemy, _bullet=null, _incScore: Boolean = false)
+			{
+				if (_incScore)
+				{
+					_this.dispatchEvent(new Event('INCREMENT_SCORE'));
+				}
 				_bossEnemy.destroy();
-				//_bossEnemyHolder.removeChild(_bossEnemy);
-				//_bossEnemy = null;
+				_enemyHolder.removeChild(_bossEnemy);
+				_bossEnemy = null;
+
+				if (_bullet)
+				{
+					_bullet.destroy();
+					_bulletHolder.removeChild(_bullet);
+					_bullet = null;
+				}
 			}
 		}
 
@@ -153,14 +184,43 @@
 			var _enemyHolder:Sprite = this.getChildByName("_enemyHolder") as Sprite;
 			for (var i:int = 0; i<_enemyHolder.numChildren; i++)
 			{
-				var _enemy:Enemy = _enemyHolder.getChildAt(i) as Enemy;
-				if (this._player && this._player.hitTestObject(_enemy))
+				var _enemy;
+				if (_enemyHolder.getChildAt(i) is Enemy)
 				{
-					this.removeEventListener(Event.ENTER_FRAME, this.onBulletLifeCount);
-					this.gameOver();
+					_enemy = _enemyHolder.getChildAt(i) as Enemy;
+
+				}
+				else if (_enemyHolder.getChildAt(i) is EnemyBullet)
+				{
+					_enemy = _enemyHolder.getChildAt(i) as EnemyBullet;
+				}
+				else if (_enemyHolder.getChildAt(i) is BossEnemy)
+				{
+					_enemy = _enemyHolder.getChildAt(i) as BossEnemy;
+				}
+				if (_enemy)
+				{
+					if (this._player && this._player.hitTestObject(_enemy))
+					{
+						_enemy.destroy();
+						this.checkPlayerLife();
+					}
 				}
 			}
+		}
 
+		private function checkPlayerLife():void
+		{
+			if (this._playerLifeCount < Config.LIFE - 1)
+			{
+				this._playerLifeCount++;
+				this.dispatchEvent(new Event('DECREMENT_LIFE'));
+			}
+			else
+			{
+				this.removeEventListener(Event.ENTER_FRAME, this.onBulletLifeCount);
+				this.gameOver();
+			}
 		}
 
 		private function gameOver():void
